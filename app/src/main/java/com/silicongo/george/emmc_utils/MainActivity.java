@@ -7,12 +7,14 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     private static final String TAG = "MainActivity";
 
@@ -22,6 +24,17 @@ public class MainActivity extends AppCompatActivity {
     private TextView twEmmcDevPath;
     private TextView twEmmcVersion;
     private TextView twEmmcSpeed;
+
+    /* Button Control list */
+    private Button btGetFeature;
+    private Button btGetWriteProtectStatus;
+    private Button btDoSanitize;
+    private Button btDoBKOPS;
+    private Button btClearContent;
+
+    /* cmd line output */
+    private TextView twCmdLineOutput;
+
 
     private int[] extcsd;
 
@@ -75,6 +88,22 @@ public class MainActivity extends AppCompatActivity {
             }
             twEmmcSpeed.setText(emmcSpeed[speed] + " / " +emmcBusMode[busMode]);
         }
+
+        btGetFeature = (Button)findViewById(R.id.emmcGetFeature);
+        btGetWriteProtectStatus = (Button)findViewById(R.id.emmcGetWriteProtectStatus);
+        btDoSanitize = (Button)findViewById(R.id.emmcDoSanitize);
+        btDoBKOPS = (Button)findViewById(R.id.emmcDoBKOPS);
+        btClearContent = (Button)findViewById(R.id.clearContent);
+
+        btGetFeature.setOnClickListener(this);
+        btGetWriteProtectStatus.setOnClickListener(this);
+        btDoSanitize.setOnClickListener(this);
+        btDoBKOPS.setOnClickListener(this);
+        btClearContent.setOnClickListener(this);
+
+
+        /* Cmdline output textview */
+        twCmdLineOutput = (TextView)findViewById(R.id.cmdLineOutput);
     }
 
     @Override
@@ -107,5 +136,44 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    }
+
+    public void onClick(View v) {
+        String[] output;
+        switch (v.getId()) {
+            case R.id.emmcGetFeature:
+                output = MmcUtils.getEmmcFeature();
+                twCmdLineOutput.append("\nGet Emmc Feature:\n");
+                for(int i=0; (i<output.length)&&(output[i] != null); i++){
+                    twCmdLineOutput.append(output[i] + "\n");
+                }
+                break;
+            case R.id.emmcGetWriteProtectStatus:
+                output = MmcUtils.getWriteProtectStatus();
+                twCmdLineOutput.append("\nGet Emmc Write Protect Status:\n");
+                for(int i=0; (i<output.length)&&(output[i] != null); i++){
+                    twCmdLineOutput.append(output[i] + "\n");
+                }
+                break;
+            case R.id.emmcDoSanitize:
+                output = MmcUtils.doSanitize();
+                twCmdLineOutput.append("\nDo Sanitize:\n");
+                for(int i=0; (i<output.length)&&(output[i] != null); i++){
+                    twCmdLineOutput.append(output[i] + "\n");
+                }
+                break;
+            case R.id.emmcDoBKOPS:
+                output = MmcUtils.doBKOPS();
+                twCmdLineOutput.append("\nDo BKOPS:\n");
+                for(int i=0; (i<output.length)&&(output[i] != null); i++){
+                    twCmdLineOutput.append(output[i] + "\n");
+                }
+                break;
+            case R.id.clearContent:
+                twCmdLineOutput.setText("");
+                break;
+            default:
+                break;
+        }
     }
 }

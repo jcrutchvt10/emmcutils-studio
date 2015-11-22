@@ -91,6 +91,46 @@ public class MmcUtils {
         return strEmmcBlockPath;
     }
 
+    public static String[] getEmmcFeature(){
+        String[] shellCmd = new String[]{"su", "-c", emmcUtilsExecuteBinary +
+                " extcsd read "+ strEmmcBlockPath};
+        String[] cmdOutput;
+
+        cmdOutput = execShell(shellCmd);
+
+        return cmdOutput;
+    }
+
+    public static String[] getWriteProtectStatus(){
+        String[] shellCmd = new String[]{"su", "-c", emmcUtilsExecuteBinary +
+                " writeprotect get "+ strEmmcBlockPath};
+        String[] cmdOutput;
+
+        cmdOutput = execShell(shellCmd);
+
+        return cmdOutput;
+    }
+
+    public static String[] doSanitize(){
+        String[] shellCmd = new String[]{"su", "-c", emmcUtilsExecuteBinary +
+                " sanitize "+ strEmmcBlockPath};
+        String[] cmdOutput;
+
+        cmdOutput = execShell(shellCmd);
+
+        return cmdOutput;
+    }
+
+    public static String[] doBKOPS(){
+        String[] shellCmd = new String[]{"su", "-c", emmcUtilsExecuteBinary +
+                " bkops enable "+ strEmmcBlockPath};
+        String[] cmdOutput;
+
+        cmdOutput = execShell(shellCmd);
+
+        return cmdOutput;
+    }
+
     public static int[] getEmmcExtCsd()
     {
         int[] extcsd = new int[512];
@@ -196,7 +236,7 @@ public class MmcUtils {
     }
 
     public static String[] execShell(String cmd[]) {
-        String cmdInfo[] = new String[100];
+        String cmdInfo[] = new String[500];
         int valid_cmd_line = 0x0;
         try {
             Process p = Runtime.getRuntime().exec(cmd);
@@ -205,8 +245,12 @@ public class MmcUtils {
                             p.getInputStream()));
             String line = null;
             while ((line = in.readLine()) != null) {
-                cmdInfo[valid_cmd_line] = line;
-                valid_cmd_line++;
+                if(valid_cmd_line < cmdInfo.length) {
+                    cmdInfo[valid_cmd_line] = line;
+                    valid_cmd_line++;
+                }else{
+                    Log.e(TAG, "output buffer not enough to hold string");
+                }
                 Log.i("execShell", line);
             }
         } catch (IOException t) {
