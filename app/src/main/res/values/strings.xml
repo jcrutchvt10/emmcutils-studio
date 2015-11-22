@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Emmc_utils</string>
+    <string name="no_emmc_device">Can\'t find any emmc devices</string>
 </resources>
