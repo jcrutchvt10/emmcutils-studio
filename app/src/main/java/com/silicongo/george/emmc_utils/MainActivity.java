@@ -2,6 +2,7 @@ package com.silicongo.george.emmc_utils;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -35,8 +36,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     /* cmd line output */
     private TextView twCmdLineOutput;
 
-
     private int[] extcsd;
+
+    private InitEmmcInfo initEmmcInfo;
 
     /* static text */
     private static final String[] emmcSpeed = {"Backwards compatibility interface timing",
@@ -55,45 +57,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         MmcUtils.checkEmmcExecuteFile(this);
 
-        /* Init the global var */
-        emmcDevPath = MmcUtils.getEmmcPath();
-
         /* Init the display ctrl */
-        twEmmcDevPath = (TextView)findViewById(R.id.EmmcDevPathInfo);
-        twEmmcVersion = (TextView)findViewById(R.id.EmmcVersionInfo);
-        twEmmcSpeed = (TextView)findViewById(R.id.EmmcSpeedInfo);
+        twEmmcDevPath = (TextView) findViewById(R.id.EmmcDevPathInfo);
+        twEmmcVersion = (TextView) findViewById(R.id.EmmcVersionInfo);
+        twEmmcSpeed = (TextView) findViewById(R.id.EmmcSpeedInfo);
 
-        if(emmcDevPath != null){
-            twEmmcDevPath.setText(emmcDevPath);
-        }else{
-            twEmmcDevPath.setText(R.string.no_emmc_device);
-        }
-
-        extcsd = MmcUtils.getEmmcExtCsd();
-
-        if(extcsd != null) {
-            int version = extcsd[192];
-            if (version > emmcVersion.length) {
-                version = emmcVersion.length;
-            }
-            twEmmcVersion.setText(emmcVersion[version]);
-
-            int speed = extcsd[185] & 0x0f;
-            if(speed > emmcSpeed.length){
-                speed = emmcSpeed.length;
-            }
-            int busMode = extcsd[183] & 0x0f;
-            if(busMode > emmcBusMode.length){
-                busMode = emmcBusMode.length;
-            }
-            twEmmcSpeed.setText(emmcSpeed[speed] + " / " +emmcBusMode[busMode]);
-        }
-
-        btGetFeature = (Button)findViewById(R.id.emmcGetFeature);
-        btGetWriteProtectStatus = (Button)findViewById(R.id.emmcGetWriteProtectStatus);
-        btDoSanitize = (Button)findViewById(R.id.emmcDoSanitize);
-        btDoBKOPS = (Button)findViewById(R.id.emmcDoBKOPS);
-        btClearContent = (Button)findViewById(R.id.clearContent);
+        btGetFeature = (Button) findViewById(R.id.emmcGetFeature);
+        btGetWriteProtectStatus = (Button) findViewById(R.id.emmcGetWriteProtectStatus);
+        btDoSanitize = (Button) findViewById(R.id.emmcDoSanitize);
+        btDoBKOPS = (Button) findViewById(R.id.emmcDoBKOPS);
+        btClearContent = (Button) findViewById(R.id.clearContent);
 
         btGetFeature.setOnClickListener(this);
         btGetWriteProtectStatus.setOnClickListener(this);
@@ -101,9 +74,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btDoBKOPS.setOnClickListener(this);
         btClearContent.setOnClickListener(this);
 
-
         /* Cmdline output textview */
-        twCmdLineOutput = (TextView)findViewById(R.id.cmdLineOutput);
+        twCmdLineOutput = (TextView) findViewById(R.id.cmdLineOutput);
+
+        initEmmcInfo = new InitEmmcInfo();
+        initEmmcInfo.execute();
     }
 
     @Override
@@ -144,28 +119,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.emmcGetFeature:
                 output = MmcUtils.getEmmcFeature();
                 twCmdLineOutput.append("\nGet Emmc Feature:\n");
-                for(int i=0; (i<output.length)&&(output[i] != null); i++){
+                for (int i = 0; (i < output.length) && (output[i] != null); i++) {
                     twCmdLineOutput.append(output[i] + "\n");
                 }
                 break;
             case R.id.emmcGetWriteProtectStatus:
                 output = MmcUtils.getWriteProtectStatus();
                 twCmdLineOutput.append("\nGet Emmc Write Protect Status:\n");
-                for(int i=0; (i<output.length)&&(output[i] != null); i++){
+                for (int i = 0; (i < output.length) && (output[i] != null); i++) {
                     twCmdLineOutput.append(output[i] + "\n");
                 }
                 break;
             case R.id.emmcDoSanitize:
                 output = MmcUtils.doSanitize();
                 twCmdLineOutput.append("\nDo Sanitize:\n");
-                for(int i=0; (i<output.length)&&(output[i] != null); i++){
+                for (int i = 0; (i < output.length) && (output[i] != null); i++) {
                     twCmdLineOutput.append(output[i] + "\n");
                 }
                 break;
             case R.id.emmcDoBKOPS:
                 output = MmcUtils.doBKOPS();
                 twCmdLineOutput.append("\nDo BKOPS:\n");
-                for(int i=0; (i<output.length)&&(output[i] != null); i++){
+                for (int i = 0; (i < output.length) && (output[i] != null); i++) {
                     twCmdLineOutput.append(output[i] + "\n");
                 }
                 break;
@@ -174,6 +149,66 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             default:
                 break;
+        }
+    }
+
+    /* AsyncTask to update the screen information */
+    private class InitEmmcInfo extends AsyncTask<String, Integer, Void> {
+        private static final String TAG = "InitEmmcInfo";
+
+        public InitEmmcInfo() {
+            btGetFeature.setEnabled(false);
+            btGetWriteProtectStatus.setEnabled(false);
+            btDoSanitize.setEnabled(false);
+            btDoBKOPS.setEnabled(false);
+            btClearContent.setEnabled(false);
+        }
+
+        /**
+         * The system calls this to perform work in a worker thread and
+         * delivers it the parameters given to AsyncTask.execute()
+         */
+        protected Void doInBackground(String... urls) {
+            /* Init the global var */
+            if (emmcDevPath == null) {
+                emmcDevPath = MmcUtils.getEmmcPath();
+            }
+            if (extcsd == null) {
+                extcsd = MmcUtils.getEmmcExtCsd();
+            }
+            return null;
+        }
+
+        protected void onPostExecute(Void result) {
+            if (emmcDevPath != null) {
+                twEmmcDevPath.setText(emmcDevPath);
+            } else {
+                twEmmcDevPath.setText(R.string.no_emmc_device);
+            }
+
+            if (extcsd != null) {
+                int version = extcsd[192];
+                if (version > emmcVersion.length) {
+                    version = emmcVersion.length;
+                }
+                twEmmcVersion.setText(emmcVersion[version]);
+
+                int speed = extcsd[185] & 0x0f;
+                if (speed > emmcSpeed.length) {
+                    speed = emmcSpeed.length;
+                }
+                int busMode = extcsd[183] & 0x0f;
+                if (busMode > emmcBusMode.length) {
+                    busMode = emmcBusMode.length;
+                }
+                twEmmcSpeed.setText(emmcSpeed[speed] + " / " + emmcBusMode[busMode]);
+            }
+
+            btGetFeature.setEnabled(true);
+            btGetWriteProtectStatus.setEnabled(true);
+            btDoSanitize.setEnabled(true);
+            btDoBKOPS.setEnabled(true);
+            btClearContent.setEnabled(true);
         }
     }
 }
