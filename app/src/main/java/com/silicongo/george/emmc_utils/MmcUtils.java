@@ -1,8 +1,12 @@
 package com.silicongo.george.emmc_utils;
 
 import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Environment;
 import android.util.Log;
+import android.widget.TextView;
+
+import org.w3c.dom.Text;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -20,9 +24,15 @@ public class MmcUtils {
     private static String strEmmcBlockPath;
 
     private static final String emmcUtilsExecuteBinary = "/system/bin/mmc";
+    private ExecuteBackgroundCmd executeBackgroundCmd;
+    private TextView tvOutput;
 
     static {
         System.loadLibrary("MmcUtils");
+    }
+
+    public MmcUtils(TextView tv){
+        tvOutput = tv;
     }
 
     public static native String getMMCBlockPath();
@@ -91,44 +101,28 @@ public class MmcUtils {
         return strEmmcBlockPath;
     }
 
-    public static String[] getEmmcFeature(){
-        String[] shellCmd = new String[]{"su", "-c", emmcUtilsExecuteBinary +
-                " extcsd read "+ strEmmcBlockPath};
-        String[] cmdOutput;
-
-        cmdOutput = execShell(shellCmd);
-
-        return cmdOutput;
+    public void getEmmcFeature(){
+        String shellCmd = emmcUtilsExecuteBinary + " extcsd read "+ strEmmcBlockPath;
+        executeBackgroundCmd = new ExecuteBackgroundCmd(tvOutput);
+        executeBackgroundCmd.execute(shellCmd);
     }
 
-    public static String[] getWriteProtectStatus(){
-        String[] shellCmd = new String[]{"su", "-c", emmcUtilsExecuteBinary +
-                " writeprotect get "+ strEmmcBlockPath};
-        String[] cmdOutput;
-
-        cmdOutput = execShell(shellCmd);
-
-        return cmdOutput;
+    public void getWriteProtectStatus(){
+        String shellCmd = emmcUtilsExecuteBinary + " writeprotect get "+ strEmmcBlockPath;
+        executeBackgroundCmd = new ExecuteBackgroundCmd(tvOutput);
+        executeBackgroundCmd.execute(shellCmd);
     }
 
-    public static String[] doSanitize(){
-        String[] shellCmd = new String[]{"su", "-c", emmcUtilsExecuteBinary +
-                " sanitize "+ strEmmcBlockPath};
-        String[] cmdOutput;
-
-        cmdOutput = execShell(shellCmd);
-
-        return cmdOutput;
+    public void doSanitize(){
+        String shellCmd = emmcUtilsExecuteBinary + " sanitize "+ strEmmcBlockPath;
+        executeBackgroundCmd = new ExecuteBackgroundCmd(tvOutput);
+        executeBackgroundCmd.execute(shellCmd);
     }
 
-    public static String[] doBKOPS(){
-        String[] shellCmd = new String[]{"su", "-c", emmcUtilsExecuteBinary +
-                " bkops enable "+ strEmmcBlockPath};
-        String[] cmdOutput;
-
-        cmdOutput = execShell(shellCmd);
-
-        return cmdOutput;
+    public void doBKOPS(){
+        String shellCmd = emmcUtilsExecuteBinary + " bkops enable "+ strEmmcBlockPath;
+        executeBackgroundCmd = new ExecuteBackgroundCmd(tvOutput);
+        executeBackgroundCmd.execute(shellCmd);
     }
 
     public static int[] getEmmcExtCsd()
@@ -261,5 +255,46 @@ public class MmcUtils {
 
         cmdInfo[valid_cmd_line] = null;
         return cmdInfo;
+    }
+
+    /* AsyncTask to update the screen information */
+    private class ExecuteBackgroundCmd extends AsyncTask<String, String, Void> {
+        private static final String TAG = "executeBackgroundCmd";
+        private TextView tvOutput;
+
+        public ExecuteBackgroundCmd(TextView tv) {
+            tvOutput = tv;
+        }
+
+        /**
+         * The system calls this to perform work in a worker thread and
+         * delivers it the parameters given to AsyncTask.execute()
+         */
+        protected Void doInBackground(String... urls) {
+            String[] cmd = new String[]{"su", "-c", urls[0]};
+            try {
+                Process p = Runtime.getRuntime().exec(cmd);
+                BufferedReader in = new BufferedReader(
+                        new InputStreamReader(
+                                p.getInputStream()));
+                String line = null;
+                while ((line = in.readLine()) != null) {
+                    publishProgress(line);
+                    Log.i("execShell", line);
+                }
+            } catch (IOException t) {
+                t.printStackTrace();
+            }
+            return null;
+        }
+
+        protected void onPostExecute(Void result) {
+        }
+
+        protected void onProgressUpdate(String... progress) {
+            if(tvOutput != null){
+                tvOutput.append(progress[0] + "\n");
+            }
+        }
     }
 }

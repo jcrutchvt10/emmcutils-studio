@@ -3,6 +3,8 @@ package com.silicongo.george.emmc_utils;
 import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -36,6 +38,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     /* cmd line output */
     private TextView twCmdLineOutput;
 
+    private MmcUtils mmcUtils;
     private int[] extcsd;
 
     private InitEmmcInfo initEmmcInfo;
@@ -55,8 +58,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        MmcUtils.checkEmmcExecuteFile(this);
-
         /* Init the display ctrl */
         twEmmcDevPath = (TextView) findViewById(R.id.EmmcDevPathInfo);
         twEmmcVersion = (TextView) findViewById(R.id.EmmcVersionInfo);
@@ -68,6 +69,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btDoBKOPS = (Button) findViewById(R.id.emmcDoBKOPS);
         btClearContent = (Button) findViewById(R.id.clearContent);
 
+        btGetFeature.setEnabled(false);
+        btGetWriteProtectStatus.setEnabled(false);
+        btDoSanitize.setEnabled(false);
+        btDoBKOPS.setEnabled(false);
+        btClearContent.setEnabled(false);
+
         btGetFeature.setOnClickListener(this);
         btGetWriteProtectStatus.setOnClickListener(this);
         btDoSanitize.setOnClickListener(this);
@@ -76,14 +83,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         /* Cmdline output textview */
         twCmdLineOutput = (TextView) findViewById(R.id.cmdLineOutput);
-
-        initEmmcInfo = new InitEmmcInfo();
-        initEmmcInfo.execute();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+
+        initEmmcInfo = new InitEmmcInfo();
+        initEmmcInfo.execute();
     }
 
     @Override
@@ -117,32 +124,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         String[] output;
         switch (v.getId()) {
             case R.id.emmcGetFeature:
-                output = MmcUtils.getEmmcFeature();
                 twCmdLineOutput.append("\nGet Emmc Feature:\n");
-                for (int i = 0; (i < output.length) && (output[i] != null); i++) {
-                    twCmdLineOutput.append(output[i] + "\n");
-                }
+                mmcUtils.getEmmcFeature();
                 break;
             case R.id.emmcGetWriteProtectStatus:
-                output = MmcUtils.getWriteProtectStatus();
                 twCmdLineOutput.append("\nGet Emmc Write Protect Status:\n");
-                for (int i = 0; (i < output.length) && (output[i] != null); i++) {
-                    twCmdLineOutput.append(output[i] + "\n");
-                }
+                mmcUtils.getWriteProtectStatus();
                 break;
             case R.id.emmcDoSanitize:
-                output = MmcUtils.doSanitize();
                 twCmdLineOutput.append("\nDo Sanitize:\n");
-                for (int i = 0; (i < output.length) && (output[i] != null); i++) {
-                    twCmdLineOutput.append(output[i] + "\n");
-                }
+                mmcUtils.doSanitize();
                 break;
             case R.id.emmcDoBKOPS:
-                output = MmcUtils.doBKOPS();
                 twCmdLineOutput.append("\nDo BKOPS:\n");
-                for (int i = 0; (i < output.length) && (output[i] != null); i++) {
-                    twCmdLineOutput.append(output[i] + "\n");
-                }
+                mmcUtils.doBKOPS();
                 break;
             case R.id.clearContent:
                 twCmdLineOutput.setText("");
@@ -157,11 +152,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         private static final String TAG = "InitEmmcInfo";
 
         public InitEmmcInfo() {
-            btGetFeature.setEnabled(false);
-            btGetWriteProtectStatus.setEnabled(false);
-            btDoSanitize.setEnabled(false);
-            btDoBKOPS.setEnabled(false);
-            btClearContent.setEnabled(false);
+            mmcUtils = new MmcUtils(twCmdLineOutput);
         }
 
         /**
@@ -169,6 +160,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
          * delivers it the parameters given to AsyncTask.execute()
          */
         protected Void doInBackground(String... urls) {
+
+            MmcUtils.checkEmmcExecuteFile(getApplicationContext());
+
             /* Init the global var */
             if (emmcDevPath == null) {
                 emmcDevPath = MmcUtils.getEmmcPath();
