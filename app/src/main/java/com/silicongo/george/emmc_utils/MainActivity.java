@@ -1,13 +1,19 @@
 package com.silicongo.george.emmc_utils;
 
+import android.app.Activity;
+import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.app.DialogFragment;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -17,7 +23,7 @@ import android.widget.TextView;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, FireMissilesDialogFragment.NoticeDialogListener {
 
     private static final String TAG = "MainActivity";
 
@@ -89,8 +95,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onResume() {
         super.onResume();
 
-        initEmmcInfo = new InitEmmcInfo();
-        initEmmcInfo.execute();
+        if (RootUtil.isDeviceRooted() == false) {
+            FireMissilesDialogFragment dialogFragment = new FireMissilesDialogFragment();
+            dialogFragment.show(getSupportFragmentManager(), "Dialog");
+        } else {
+            initEmmcInfo = new InitEmmcInfo();
+            initEmmcInfo.execute();
+        }
     }
 
     @Override
@@ -204,5 +215,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             btDoBKOPS.setEnabled(true);
             btClearContent.setEnabled(true);
         }
+    }
+
+    @Override
+    public void onDialogPositiveClick(DialogFragment dialog){
+        finish();
+    }
+    @Override
+    public void onDialogNegativeClick(DialogFragment dialog){
+        finish();
     }
 }
