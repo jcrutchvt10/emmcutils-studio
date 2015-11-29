@@ -3,4 +3,7 @@
     <string name="no_emmc_device">Can\'t find any emmc devices</string>
     <string name="confirm">Confirm</string>
     <string name="device_not_root">Device is not root, please root first</string>
+
+<!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

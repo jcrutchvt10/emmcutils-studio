@@ -23,7 +23,10 @@ public class MmcUtils {
     private static final String TAG = "MmcUtils";
     private static String strEmmcBlockPath;
 
-    private static final String emmcUtilsExecuteBinary = "/system/bin/mmc";
+    private static final String emmcUtilsExecuteBinaryDirList[] = {"/system/bin/", "/sbin/"};
+    private static final String emmcUtilsExecuteBinaryDev[] = {"/system", "/"};
+    private String emmcUtilsExecuteBinaryDir;
+    private static final String emmcUtilsExecuteBinaryName = "mmc";
     private ExecuteBackgroundCmd executeBackgroundCmd;
     private TextView tvOutput;
 
@@ -37,55 +40,98 @@ public class MmcUtils {
 
     public static native String getMMCBlockPath();
 
-    public static boolean checkEmmcExecuteFile(Context context) {
+    public boolean checkEmmcExecuteFile(Context context) {
         boolean status = false;
         /* Check for the binary file is exist or not */
-        File executeFile = new File(emmcUtilsExecuteBinary);
-        if (executeFile.exists() == true) {
-            status = true;
-        } else {
-            /* try to copy the file to the /system/bin directory */
-            String filename = Environment.getExternalStorageDirectory().getAbsolutePath() + "/bin/";
-            File file = new File(filename);
-            if (file.exists() == false) {
-                file.mkdirs();
+        for (String path : emmcUtilsExecuteBinaryDirList) {
+            File executeFile = new File(path + emmcUtilsExecuteBinaryName);
+            if (executeFile.exists() == true) {
+                emmcUtilsExecuteBinaryDir = path;
+                status = true;
+                break;
             }
-            InputStream is = null;
-            FileOutputStream fos = null;
-            try {
-                is = context.getResources().openRawResource(R.raw.mmc);
-                fos = new FileOutputStream(filename + "mmc");
-                byte[] buffer = new byte[81920];
-                int count = 0;
+        }
 
-                while ((count = is.read(buffer)) > 0) {
-                    fos.write(buffer, 0, count);
-                }
-                fos.close();
-                is.close();
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-
+        if (status == false) {
+            /* Check if we need to create the mmc file */
+            String emmcBinSDDirName = Environment.getExternalStorageDirectory().getAbsolutePath() + "/bin/";
+            File emmcBinSDDir = new File(emmcBinSDDirName);
+            if (emmcBinSDDir.exists() == false) {
+                emmcBinSDDir.mkdirs();
             }
-            file = new File(filename + "mmc");
-            if (file.exists()) {
-                /* mount system as rw */
-                String[] mountSystem = {"su", "-c", "mount -o rw,remount /system"};
-                String[] copyFile = {"su", "-c", "cp " + filename + "mmc " + emmcUtilsExecuteBinary};
-                String[] changeMode = {"su", "-c", "chmod 0774 " + emmcUtilsExecuteBinary};
-                String[] changeOwner = {"su", "-c", "chown root:shell " + emmcUtilsExecuteBinary};
+            File emmcBinSD = new File(emmcBinSDDirName + emmcUtilsExecuteBinaryName);
+            if(emmcBinSD.exists() == false) {
+                InputStream is = null;
+                FileOutputStream fos = null;
+                try {
+                    is = context.getResources().openRawResource(R.raw.mmc);
+                    fos = new FileOutputStream(emmcBinSDDirName + emmcUtilsExecuteBinaryName);
+                    byte[] buffer = new byte[81920];
+                    int count = 0;
 
-                execShell(mountSystem);
-                execShell(copyFile);
-                execShell(changeMode);
-                execShell(changeOwner);
-
-                if (executeFile.exists() == true) {
-                    status = true;
+                    while ((count = is.read(buffer)) > 0) {
+                        fos.write(buffer, 0, count);
+                    }
+                    fos.close();
+                    is.close();
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
                 }
+            }
+
+            int count = 0;
+            for (String path : emmcUtilsExecuteBinaryDirList) {
+                if (new File(path).exists()) {
+                    emmcUtilsExecuteBinaryDir = path;
+                    /* try to copy the file to the /system/bin directory */
+                    if (emmcBinSD.exists()) {
+                        /* remount the parent directory */
+                        String[] mountCmdInfo = execShell(new String[]{"mount"});
+                        String mountDevPathInfo = null;
+                        for(String str:mountCmdInfo){
+                            if(str.contains(emmcUtilsExecuteBinaryDev[count])){
+                                int end, match = 0;
+                                for(end=0; end<str.length(); end++){
+                                    if(str.charAt(end) == ' '){
+                                        if(++match == 2){
+                                            break;
+                                        }
+                                    }
+                                }
+                                if(match == 2) {
+                                    mountDevPathInfo = str.substring(0, end);
+                                    break;
+                                }
+                            }
+                        }
+
+                        if(mountDevPathInfo != null){
+                            String remountCmd[] = {"su", "-c", "mount -o rw,remount " + mountDevPathInfo};
+                            execShell(remountCmd);
+                        }
+
+                        /* mount system as rw */
+                        String[] copyFile = {"su", "-c", "cp " + emmcBinSDDirName + emmcUtilsExecuteBinaryName
+                                + " " + emmcUtilsExecuteBinaryDir + emmcUtilsExecuteBinaryName};
+                        String[] changeMode = {"su", "-c", "chmod 0774 " +
+                                emmcUtilsExecuteBinaryDir + emmcUtilsExecuteBinaryName};
+                        String[] changeOwner = {"su", "-c", "chown root:shell " +
+                                emmcUtilsExecuteBinaryDir + emmcUtilsExecuteBinaryName};
+
+                        execShell(copyFile);
+                        execShell(changeMode);
+                        execShell(changeOwner);
+
+                        if(new File(emmcUtilsExecuteBinaryDir + emmcUtilsExecuteBinaryName).exists()){
+                            status = true;
+                            break;
+                        }
+                    }
+                }
+                count++;
             }
         }
         return status;
@@ -101,32 +147,32 @@ public class MmcUtils {
     }
 
     public void getEmmcFeature() {
-        String shellCmd = emmcUtilsExecuteBinary + " extcsd read " + strEmmcBlockPath;
+        String shellCmd = emmcUtilsExecuteBinaryDir + emmcUtilsExecuteBinaryName + " extcsd read " + strEmmcBlockPath;
         executeBackgroundCmd = new ExecuteBackgroundCmd(tvOutput);
         executeBackgroundCmd.execute(shellCmd);
     }
 
     public void getWriteProtectStatus() {
-        String shellCmd = emmcUtilsExecuteBinary + " writeprotect get " + strEmmcBlockPath;
+        String shellCmd = emmcUtilsExecuteBinaryDir + emmcUtilsExecuteBinaryName + " writeprotect get " + strEmmcBlockPath;
         executeBackgroundCmd = new ExecuteBackgroundCmd(tvOutput);
         executeBackgroundCmd.execute(shellCmd);
     }
 
     public void doSanitize() {
-        String shellCmd = emmcUtilsExecuteBinary + " sanitize " + strEmmcBlockPath;
+        String shellCmd = emmcUtilsExecuteBinaryDir + emmcUtilsExecuteBinaryName + " sanitize " + strEmmcBlockPath;
         executeBackgroundCmd = new ExecuteBackgroundCmd(tvOutput);
         executeBackgroundCmd.execute(shellCmd);
     }
 
     public void doBKOPS() {
-        String shellCmd = emmcUtilsExecuteBinary + " bkops enable " + strEmmcBlockPath;
+        String shellCmd = emmcUtilsExecuteBinaryDir + emmcUtilsExecuteBinaryName + " bkops enable " + strEmmcBlockPath;
         executeBackgroundCmd = new ExecuteBackgroundCmd(tvOutput);
         executeBackgroundCmd.execute(shellCmd);
     }
 
-    public static int[] getEmmcExtCsd() {
+    public int[] getEmmcExtCsd() {
         int[] extcsd = new int[512];
-        String[] shellCmd = new String[]{"su", "-c", emmcUtilsExecuteBinary +
+        String[] shellCmd = new String[]{"su", "-c", emmcUtilsExecuteBinaryDir + emmcUtilsExecuteBinaryName +
                 " extcsd dump " + strEmmcBlockPath};
         String[] cmdOutput;
 
@@ -135,7 +181,7 @@ public class MmcUtils {
         }
 
         /* Check for the binary file is exist or not */
-        File executeFile = new File(emmcUtilsExecuteBinary);
+        File executeFile = new File(emmcUtilsExecuteBinaryDir + emmcUtilsExecuteBinaryName);
         if (executeFile.exists() == true) {
             cmdOutput = execShell(shellCmd);
 

@@ -1,0 +1,130 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.silicongo.george.emmc_utils.EmmcInforamtion">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/EmmcDevPathImage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@mipmap/device" />
+
+            <TextView
+                android:id="@+id/EmmcDevPathInfo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/EmmcVersionImage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@mipmap/info" />
+
+            <TextView
+                android:id="@+id/EmmcVersionInfo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/EmmcSpeedImage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@mipmap/speed" />
+
+            <TextView
+                android:id="@+id/EmmcSpeedInfo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/emmcGetFeature"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Get Feature"
+                android:layout_weight="1"/>
+
+            <Button
+                android:id="@+id/emmcGetWriteProtectStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Write Protect Status"
+                android:layout_weight="1"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/emmcDoSanitize"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sanitize"
+                android:layout_weight="1"/>
+
+            <Button
+                android:id="@+id/emmcDoBKOPS"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Background Operation"
+                android:layout_weight="1"/>
+        </LinearLayout>
+
+        <ScrollView
+            android:id="@+id/scrollView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="#d6d6d6">
+
+            <TextView
+                android:id="@+id/cmdLineOutput"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="" />
+        </ScrollView>
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Clear Content"
+            android:id="@+id/clearContent"
+            android:layout_gravity="center_horizontal" />
+
+    </LinearLayout>
+
+</FrameLayout>
