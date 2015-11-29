@@ -4,10 +4,83 @@
     android:layout_height="match_parent"
     tools:context="com.silicongo.george.emmc_utils.EmmcSpeedTest">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
+        android:layout_gravity="center_horizontal">
+
+        <LinearLayout
+            android:id="@+id/storageChoice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left|top"
+            android:orientation="vertical">
+
+            <RadioButton
+                android:id="@+id/rbInternalStorage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/internal_storage" />
+
+            <RadioButton
+                android:id="@+id/rbExternalStorage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/external_storage" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/conditionChoice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/storageChoice"
+            android:orientation="vertical">
+
+            <Spinner
+                android:id="@+id/spTestSize"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <Spinner
+                android:id="@+id/spTestTimes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/testInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/conditionChoice"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/twTextOutputInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true"
+                android:layout_below="@+id/conditionChoice"
+                android:text="" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/testControlField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/testInfo"
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/btTestStart"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:text="Start"
+                android:layout_gravity="center_horizontal" />
+        </LinearLayout>
+
+    </RelativeLayout>
 
 </FrameLayout>

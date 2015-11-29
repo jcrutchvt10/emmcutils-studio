@@ -5,5 +5,6 @@
     <string name="device_not_root">Device is not root, please root first</string>
 
 <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="internal_storage">Internal Storage</string>
+    <string name="external_storage">External Storage</string>
 </resources>
