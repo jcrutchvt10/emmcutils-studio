@@ -10,17 +10,25 @@ extern "C" {
 /*
  * Class:     com_silicongo_george_emmc_utils_FileOperation
  * Method:    is_support_direct_io
- * Signature: (Ljava/lang/String;)Z
+ * Signature: (Ljava/lang/String;)Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_com_silicongo_george_emmc_1utils_FileOperation_is_1support_1direct_1io
   (JNIEnv *, jclass, jstring);
 
 /*
  * Class:     com_silicongo_george_emmc_utils_FileOperation
- * Method:    rw_file
+ * Method:    write_file
  * Signature: (Ljava/lang/String;III)Z
  */
-JNIEXPORT jboolean JNICALL Java_com_silicongo_george_emmc_1utils_FileOperation_rw_1file
+JNIEXPORT jboolean JNICALL Java_com_silicongo_george_emmc_1utils_FileOperation_write_1file
+  (JNIEnv *, jclass, jstring, jint, jint, jint);
+
+/*
+ * Class:     com_silicongo_george_emmc_utils_FileOperation
+ * Method:    read_file
+ * Signature: (Ljava/lang/String;III)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_silicongo_george_emmc_1utils_FileOperation_read_1file
   (JNIEnv *, jclass, jstring, jint, jint, jint);
 
 #ifdef __cplusplus

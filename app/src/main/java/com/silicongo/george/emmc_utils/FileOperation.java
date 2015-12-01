@@ -11,5 +11,6 @@ public class FileOperation {
     }
 
     public static native String is_support_direct_io(String path);
-    public static native boolean rw_file(String path, int size, int times, int pattern);
+    public static native boolean write_file(String path, int size, int times, int pattern);
+    public static native boolean read_file(String path, int size, int times, int pattern);
 }

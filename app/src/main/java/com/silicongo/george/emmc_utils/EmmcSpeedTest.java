@@ -34,7 +34,7 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
 
-    private static final Map<String, File> testDir = ExternalStorage.getAllStorageLocations();
+    private static final Map<String, File> testDirMap = ExternalStorage.getAllStorageLocations();
 
     // TODO: Rename and change types of parameters
     private String mParam1;
@@ -46,9 +46,10 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
     private ArrayAdapter<String> testStorageArrayAdapter;
 
     private int[] testSizeValue = {512, 1024, 4096, 16384, 32768,
-            64 * 1024, 128 * 1024, 256 * 1024, 512 * 1024, 1024 * 1024};
+            64 * 1024, 128 * 1024, 256 * 1024, 512 * 1024, 1024 * 1024, 2 * 1024 * 1024,
+            4 * 1024 * 1024, 6 * 1024 * 1024, 8 * 1024 * 1024, 16 * 1024 * 1024, 32 * 1024 * 1024};
     private String[] testSizeString = {"512 Bytes", "1K", "4K", "16K", "32K",
-            "64K", "128K", "256K", "512K", "1M"};
+            "64K", "128K", "256K", "512K", "1M", "2M", "4M", "8M", "16M", "32M"};
     private List<String> testSizeList;
     private ArrayAdapter<String> testSizeArrayAdapter;
 
@@ -62,7 +63,14 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
     private List<String> testPatternList;
     private ArrayAdapter<String> testPatternArrayAdapter;
 
-    private static final String TestDir = "test";
+    private int[] testOperationValue = {0x00, 0x01};
+    private String[] testOperationString = {"Read", "Write"};
+    private List<String> testOperationList;
+    private ArrayAdapter<String> testOperationArrayAdapter;
+
+    private ExecuteReadWriteFile executeReadWriteFile;
+
+    private static final String testDir = "test";
 
     /* UI control field */
     /* textview */
@@ -73,6 +81,7 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
     private Spinner spTestTimes;
     private Spinner spTestSize;
     private Spinner spTestPattern;
+    private Spinner spTestOperation;
 
     /* Button */
     private Button btTestStart;
@@ -119,22 +128,29 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
         spStorageChoice = (Spinner) v.findViewById(R.id.spStorageChoice);
         spTestTimes = (Spinner) v.findViewById(R.id.spTestTimes);
         spTestSize = (Spinner) v.findViewById(R.id.spTestSize);
+        spTestPattern = (Spinner) v.findViewById(R.id.spTestPattern);
+        spTestOperation = (Spinner) v.findViewById(R.id.spTestOperation);
 
         btTestStart = (Button) v.findViewById(R.id.btTestStart);
 
         testStorageList = new ArrayList<>();
-        String externalSDCard = testDir.get(ExternalStorage.EXTERNAL_SD_CARD).toString();
-        if (externalSDCard != null) {
-            testStorageList.add(externalSDCard);
+        Object obj = testDirMap.get(ExternalStorage.EXTERNAL_SD_CARD);
+        if (obj != null) {
+            String externalSDCard = obj.toString();
+            if (externalSDCard != null) {
+                testStorageList.add(externalSDCard);
+            }
         }
-        String SDCard = testDir.get(ExternalStorage.SD_CARD).toString();
-        if (SDCard != null) {
-            testStorageList.add(SDCard);
+        obj = testDirMap.get(ExternalStorage.SD_CARD);
+        if (obj != null) {
+            String SDCard = obj.toString();
+            if (SDCard != null) {
+                testStorageList.add(SDCard);
+            }
         }
         testStorageArrayAdapter = new ArrayAdapter<String>(getContext(),
                 android.R.layout.simple_spinner_item, testStorageList);
         spStorageChoice.setAdapter(testStorageArrayAdapter);
-
 
         testSizeList = new ArrayList<>();
         for (String str : testSizeString) {
@@ -159,6 +175,16 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
         testPatternArrayAdapter = new ArrayAdapter<String>(getContext(),
                 android.R.layout.simple_spinner_item, testPatternList);
         spTestPattern.setAdapter(testPatternArrayAdapter);
+
+        testOperationList = new ArrayList<>();
+        for (String str : testOperationString) {
+            testOperationList.add(str);
+        }
+        testOperationArrayAdapter = new ArrayAdapter<String>(getContext(),
+                android.R.layout.simple_spinner_item, testOperationList);
+        spTestOperation.setAdapter(testOperationArrayAdapter);
+
+        btTestStart.setOnClickListener(this);
 
         return v;
     }
@@ -205,6 +231,13 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btTestStart:
+                if ((executeReadWriteFile == null) || (executeReadWriteFile.getStatus() != AsyncTask.Status.RUNNING)) {
+                    executeReadWriteFile = new ExecuteReadWriteFile(twTextOutputInfo);
+                    executeReadWriteFile.execute();
+                } else {
+                    executeReadWriteFile.cancel(true);
+                    refreashDisplayCtrl(true);
+                }
                 break;
             default:
                 break;
@@ -225,12 +258,22 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
         private TextView tvOutput;
         long time_start, time_end;
         String test_dir;
-        int test_times;
-        int test_pattern;
-        int test_size;
+        int test_times = 100;
+        int test_pattern = 0x0;
+        int test_size = 512;
+        int test_type = 0x0;
         long output_interval;
         long output_length;
+
+        long total_interval;
+        long total_length;
+
         boolean status;
+
+        double speed;
+        int unit = 0x0;
+        String[] unitStr = {"Bytes", "KB", "MB"};
+        String info = new String();
 
         public ExecuteReadWriteFile(TextView tv) {
             tvOutput = tv;
@@ -241,22 +284,63 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
          * delivers it the parameters given to AsyncTask.execute()
          */
         protected Void doInBackground(String... urls) {
+            int test_count = 0;
+            Integer val[] = {0x0, 0x0, 0x0};
+            output_interval = 0x0;
+            output_length = 0x0;
+            total_interval = 0x0;
+            total_length = 0x0;
+
             if (test_times == -1) {
-                Integer val[] = {0x0};
-                output_interval = 0x0;
-                output_length = 0x0;
                 while (isCancelled() == false) {
+                    if (test_type == 0x0) {
+                        status = FileOperation.write_file(test_dir, test_size,
+                                40 * 1024 * 1024 / test_size, test_pattern);
+                        if (status == false) {
+                            break;
+                        }
+                    }
                     time_start = System.currentTimeMillis();
-                    status = FileOperation.rw_file(test_dir, 40 * 1024 * 1024 / test_size,
-                            test_size, test_pattern);
+                    if (test_type == 0x0) {
+                        status = FileOperation.read_file(test_dir, test_size,
+                                40 * 1024 * 1024 / test_size, test_pattern);
+                    } else {
+                        status = FileOperation.write_file(test_dir, test_size,
+                                40 * 1024 * 1024 / test_size, test_pattern);
+                    }
+                    if (status == false) {
+                        break;
+                    }
                     time_end = System.currentTimeMillis();
                     val[0] = new Integer((int) (time_end - time_start));
+                    val[1] = new Integer(40 * 1024 * 1024);
+                    val[2] = new Integer(test_count++);
                     publishProgress(val);
                 }
             } else {
-                time_start = System.currentTimeMillis();
-                status = FileOperation.rw_file(test_dir, test_times, test_size, test_pattern);
-                time_end = System.currentTimeMillis();
+                int i;
+                for (i = 0; i < test_times; i++) {
+                    if (isCancelled() == true) {
+                        break;
+                    }
+                    if (test_type == 0x0) {
+                        status = FileOperation.write_file(test_dir, test_size, 1, test_pattern);
+                        if (status == false) {
+                            break;
+                        }
+                    }
+                    time_start = System.currentTimeMillis();
+                    if (test_type == 0x0) {
+                        status = FileOperation.read_file(test_dir, test_size, 1, test_pattern);
+                    } else {
+                        status = FileOperation.write_file(test_dir, test_size, 1, test_pattern);
+                    }
+                    time_end = System.currentTimeMillis();
+                    val[0] = new Integer((int) (time_end - time_start));
+                    val[1] = new Integer(test_size);
+                    val[2] = new Integer(test_count++);
+                    publishProgress(val);
+                }
             }
             return null;
         }
@@ -265,12 +349,12 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
             refreashDisplayCtrl(false);
             /* Check for the test dir is exist */
             test_dir = spStorageChoice.getSelectedItem().toString() + "/" + testDir;
-            File testDir = new File(test_dir);
-            if (testDir.exists() == false) {
-                testDir.mkdirs();
+            File testFileDir = new File(test_dir);
+            if (testFileDir.exists() == false) {
+                testFileDir.mkdirs();
             }
 
-            String[] file_list = testDir.list();
+            String[] file_list = testFileDir.list();
             for (String str : file_list) {
                 File file = new File(test_dir + str);
                 if (file.isFile() == true) {
@@ -307,11 +391,32 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
                 }
                 count++;
             }
+
+            val = spTestOperation.getSelectedItem().toString();
+            count = 0;
+            for (String str : testOperationString) {
+                if (val.compareTo(str) == 0) {
+                    test_type = testOperationValue[count];
+                    break;
+                }
+                count++;
+            }
         }
 
         protected void onPostExecute(Void result) {
             if (status == true) {
-                tvOutput.setText("");
+                speed = output_length * 1000 / output_interval;
+                unit = 0x0;
+                while (speed > 1024) {
+                    speed /= 1024;
+                    unit++;
+                    if (unit >= 2) {
+                        break;
+                    }
+                }
+                info = String.format("%s %s %s:  %f %s/S", "Average",
+                        (test_type == 0) ? "Read" : "Write", "Speed", speed, unitStr[unit]);
+                tvOutput.setText(info);
             } else {
                 tvOutput.setText("Test Error\n");
             }
@@ -319,23 +424,24 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
         }
 
         protected void onProgressUpdate(Integer... progress) {
-            double speed;
-            int unit = 0x0;
-            String[] unitStr = {"Bytes", "KB", "MB"};
-            String info = new String();
             output_interval += progress[0];
-            output_length += 40 * 1024 * 1024;
-            if(output_interval > 1000){
-                speed = output_length*1000/output_interval;
-                while(speed > 1024){
+            output_length += progress[1];
+
+            total_interval += progress[0];
+            total_length += progress[1];
+
+            unit = 0x0;
+            if (output_interval > 1000) {
+                speed = output_length * 1000 / output_interval;
+                while (speed > 1024) {
                     speed /= 1024;
                     unit++;
-                    if(unit >= 2){
+                    if (unit >= 2) {
                         break;
                     }
                 }
-                String.format(info, "%f%s/S", speed, unitStr);
-                tvOutput.setText("");
+                info = String.format("%d:  %f %s/S", progress[2], speed, unitStr[unit]);
+                tvOutput.setText(info);
                 output_interval = 0x0;
                 output_length = 0x0;
             }
