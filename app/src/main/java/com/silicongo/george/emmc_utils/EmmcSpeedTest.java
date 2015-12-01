@@ -2,16 +2,14 @@ package com.silicongo.george.emmc_utils;
 
 import android.app.Activity;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.v4.app.Fragment;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.RadioButton;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -29,7 +27,7 @@ import java.util.Map;
  * Use the {@link EmmcSpeedTest#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class EmmcSpeedTest extends Fragment {
+public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
     private static final String TAG = "EmmcSpeedTest";
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -44,26 +42,37 @@ public class EmmcSpeedTest extends Fragment {
 
     private OnFragmentInteractionListener mListener;
 
+    private List<String> testStorageList;
+    private ArrayAdapter<String> testStorageArrayAdapter;
+
+    private int[] testSizeValue = {512, 1024, 4096, 16384, 32768,
+            64 * 1024, 128 * 1024, 256 * 1024, 512 * 1024, 1024 * 1024};
     private String[] testSizeString = {"512 Bytes", "1K", "4K", "16K", "32K",
             "64K", "128K", "256K", "512K", "1M"};
     private List<String> testSizeList;
     private ArrayAdapter<String> testSizeArrayAdapter;
 
+    private int[] testTimesValue = {100, 1000, 10000, 100000, -1};
     private String[] testTimesString = {"100", "1000", "10000", "100000", "Infinite"};
     private List<String> testTimesList;
     private ArrayAdapter<String> testTimesArrayAdapter;
+
+    private int[] testPatternValue = {0x01, 0x0, 0xaa, 0x55, 0xff};
+    private String[] testPatternString = {"Random", "0x00", "0xaa", "0x55", "0xff"};
+    private List<String> testPatternList;
+    private ArrayAdapter<String> testPatternArrayAdapter;
+
+    private static final String TestDir = "test";
 
     /* UI control field */
     /* textview */
     private TextView twTextOutputInfo;
 
-    /* RadioButton */
-    private RadioButton rbExternelStorage;
-    private RadioButton rbInternelStorage;
-
     /* Spinner */
+    private Spinner spStorageChoice;
     private Spinner spTestTimes;
     private Spinner spTestSize;
+    private Spinner spTestPattern;
 
     /* Button */
     private Button btTestStart;
@@ -107,18 +116,25 @@ public class EmmcSpeedTest extends Fragment {
 
         twTextOutputInfo = (TextView) v.findViewById(R.id.twTextOutputInfo);
 
-        rbExternelStorage = (RadioButton) v.findViewById(R.id.rbExternalStorage);
-        rbInternelStorage = (RadioButton) v.findViewById(R.id.rbInternalStorage);
-
+        spStorageChoice = (Spinner) v.findViewById(R.id.spStorageChoice);
         spTestTimes = (Spinner) v.findViewById(R.id.spTestTimes);
         spTestSize = (Spinner) v.findViewById(R.id.spTestSize);
 
         btTestStart = (Button) v.findViewById(R.id.btTestStart);
 
-        if (testDir.get(ExternalStorage.EXTERNAL_SD_CARD) == null) {
-            rbExternelStorage.setVisibility(View.INVISIBLE);
+        testStorageList = new ArrayList<>();
+        String externalSDCard = testDir.get(ExternalStorage.EXTERNAL_SD_CARD).toString();
+        if (externalSDCard != null) {
+            testStorageList.add(externalSDCard);
         }
-        rbInternelStorage.setSelected(true);
+        String SDCard = testDir.get(ExternalStorage.SD_CARD).toString();
+        if (SDCard != null) {
+            testStorageList.add(SDCard);
+        }
+        testStorageArrayAdapter = new ArrayAdapter<String>(getContext(),
+                android.R.layout.simple_spinner_item, testStorageList);
+        spStorageChoice.setAdapter(testStorageArrayAdapter);
+
 
         testSizeList = new ArrayList<>();
         for (String str : testSizeString) {
@@ -135,6 +151,14 @@ public class EmmcSpeedTest extends Fragment {
         testTimesArrayAdapter = new ArrayAdapter<String>(getContext(),
                 android.R.layout.simple_spinner_item, testTimesList);
         spTestTimes.setAdapter(testTimesArrayAdapter);
+
+        testPatternList = new ArrayList<>();
+        for (String str : testPatternString) {
+            testPatternList.add(str);
+        }
+        testPatternArrayAdapter = new ArrayAdapter<String>(getContext(),
+                android.R.layout.simple_spinner_item, testPatternList);
+        spTestPattern.setAdapter(testPatternArrayAdapter);
 
         return v;
     }
@@ -178,4 +202,107 @@ public class EmmcSpeedTest extends Fragment {
         public void onFragmentInteraction(Uri uri);
     }
 
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.btTestStart:
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void refreashDisplayCtrl(boolean enable) {
+        spStorageChoice.setEnabled(enable);
+        spTestTimes.setEnabled(enable);
+        spTestSize.setEnabled(enable);
+        spTestPattern.setEnabled(enable);
+
+        btTestStart.setText(enable ? "Start" : "Stop");
+    }
+
+    private class ExecuteReadWriteFile extends AsyncTask<String, String, Void> {
+        private static final String TAG = "ExecuteReadWriteFile";
+        private TextView tvOutput;
+        long time_start, time_end;
+        String test_dir;
+        int test_times;
+        int test_pattern;
+        int test_size;
+        boolean status;
+
+        public ExecuteReadWriteFile(TextView tv) {
+            tvOutput = tv;
+        }
+
+        /**
+         * The system calls this to perform work in a worker thread and
+         * delivers it the parameters given to AsyncTask.execute()
+         */
+        protected Void doInBackground(String... urls) {
+            time_start = System.currentTimeMillis();
+            status = FileOperation.rw_file(test_dir, test_times, test_size, test_pattern);
+            time_end = System.currentTimeMillis();
+            return null;
+        }
+
+        protected void onPreExecute() {
+            refreashDisplayCtrl(false);
+            /* Check for the test dir is exist */
+            test_dir = spStorageChoice.getSelectedItem().toString() + "/" + testDir;
+            File testDir = new File(test_dir);
+            if (testDir.exists() == false) {
+                testDir.mkdirs();
+            }
+
+            String[] file_list = testDir.list();
+            for (String str : file_list) {
+                File file = new File(test_dir + str);
+                if (file.isFile() == true) {
+                    file.delete();
+                }
+            }
+
+            String val = spTestTimes.getSelectedItem().toString();
+            int count = 0;
+            for(String str:testTimesString){
+                if(val.compareTo(str) == 0){
+                    test_times = testTimesValue[count];
+                    break;
+                }
+                count++;
+            }
+
+            val = spTestSize.getSelectedItem().toString();
+            count = 0;
+            for(String str:testSizeString){
+                if(val.compareTo(str) == 0){
+                    test_size = testSizeValue[count];
+                    break;
+                }
+                count++;
+            }
+
+            val = spTestPattern.getSelectedItem().toString();
+            count = 0;
+            for(String str:testPatternString){
+                if(val.compareTo(str) == 0){
+                    test_pattern = testPatternValue[count];
+                    break;
+                }
+                count++;
+            }
+        }
+
+        protected void onPostExecute(Void result) {
+            if(status == true){
+                tvOutput.setText("");
+            }else{
+                tvOutput.setText("Test Error\n");
+            }
+            refreashDisplayCtrl(true);
+        }
+
+        protected void onProgressUpdate(String... progress) {
+        }
+    }
 }

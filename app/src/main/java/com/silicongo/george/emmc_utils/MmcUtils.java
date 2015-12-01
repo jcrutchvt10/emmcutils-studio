@@ -304,7 +304,6 @@ public class MmcUtils {
         return cmdInfo;
     }
 
-    /* AsyncTask to update the screen information */
     private class ExecuteBackgroundCmd extends AsyncTask<String, String, Void> {
         private static final String TAG = "executeBackgroundCmd";
         private TextView tvOutput;
