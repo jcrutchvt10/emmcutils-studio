@@ -15,6 +15,8 @@ import android.widget.TextView;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -134,19 +136,10 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
         btTestStart = (Button) v.findViewById(R.id.btTestStart);
 
         testStorageList = new ArrayList<>();
-        Object obj = testDirMap.get(ExternalStorage.EXTERNAL_SD_CARD);
-        if (obj != null) {
-            String externalSDCard = obj.toString();
-            if (externalSDCard != null) {
-                testStorageList.add(externalSDCard);
-            }
-        }
-        obj = testDirMap.get(ExternalStorage.SD_CARD);
-        if (obj != null) {
-            String SDCard = obj.toString();
-            if (SDCard != null) {
-                testStorageList.add(SDCard);
-            }
+        Collection<File> c = testDirMap.values();
+        Iterator it = c.iterator();
+        for (; it.hasNext();) {
+            testStorageList.add(it.next().toString());
         }
         testStorageArrayAdapter = new ArrayAdapter<String>(getContext(),
                 android.R.layout.simple_spinner_item, testStorageList);
@@ -249,6 +242,7 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
         spTestTimes.setEnabled(enable);
         spTestSize.setEnabled(enable);
         spTestPattern.setEnabled(enable);
+        spTestOperation.setEnabled(enable);
 
         btTestStart.setText(enable ? "Start" : "Stop");
     }
@@ -291,56 +285,35 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
             total_interval = 0x0;
             total_length = 0x0;
 
-            if (test_times == -1) {
-                while (isCancelled() == false) {
-                    if (test_type == 0x0) {
-                        status = FileOperation.write_file(test_dir, test_size,
-                                40 * 1024 * 1024 / test_size, test_pattern);
-                        if (status == false) {
-                            break;
-                        }
-                    }
-                    time_start = System.currentTimeMillis();
-                    if (test_type == 0x0) {
-                        status = FileOperation.read_file(test_dir, test_size,
-                                40 * 1024 * 1024 / test_size, test_pattern);
-                    } else {
-                        status = FileOperation.write_file(test_dir, test_size,
-                                40 * 1024 * 1024 / test_size, test_pattern);
-                    }
+            if(test_times == -1){
+                test_times = Integer.MAX_VALUE;
+            }
+
+            int i;
+            for (i = 0; i < test_times; i++) {
+                if (isCancelled() == true) {
+                    break;
+                }
+                if (test_type == 0x0) {
+                    status = FileOperation.write_file(test_dir, test_size, 1, test_pattern);
                     if (status == false) {
                         break;
                     }
-                    time_end = System.currentTimeMillis();
-                    val[0] = new Integer((int) (time_end - time_start));
-                    val[1] = new Integer(40 * 1024 * 1024);
-                    val[2] = new Integer(test_count++);
-                    publishProgress(val);
                 }
-            } else {
-                int i;
-                for (i = 0; i < test_times; i++) {
-                    if (isCancelled() == true) {
-                        break;
-                    }
-                    if (test_type == 0x0) {
-                        status = FileOperation.write_file(test_dir, test_size, 1, test_pattern);
-                        if (status == false) {
-                            break;
-                        }
-                    }
-                    time_start = System.currentTimeMillis();
-                    if (test_type == 0x0) {
-                        status = FileOperation.read_file(test_dir, test_size, 1, test_pattern);
-                    } else {
-                        status = FileOperation.write_file(test_dir, test_size, 1, test_pattern);
-                    }
-                    time_end = System.currentTimeMillis();
-                    val[0] = new Integer((int) (time_end - time_start));
-                    val[1] = new Integer(test_size);
-                    val[2] = new Integer(test_count++);
-                    publishProgress(val);
+                time_start = System.currentTimeMillis();
+                if (test_type == 0x0) {
+                    status = FileOperation.read_file(test_dir, test_size, 1, test_pattern);
+                } else {
+                    status = FileOperation.write_file(test_dir, test_size, 1, test_pattern);
                 }
+                if(status == false){
+                    break;
+                }
+                time_end = System.currentTimeMillis();
+                val[0] = new Integer((int) (time_end - time_start));
+                val[1] = new Integer(test_size);
+                val[2] = new Integer(test_count++);
+                publishProgress(val);
             }
             return null;
         }
@@ -431,7 +404,7 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
             total_length += progress[1];
 
             unit = 0x0;
-            if (output_interval > 1000) {
+            if ((output_interval > 1000) || (output_length > 1024 * 512)) {
                 speed = output_length * 1000 / output_interval;
                 while (speed > 1024) {
                     speed /= 1024;
