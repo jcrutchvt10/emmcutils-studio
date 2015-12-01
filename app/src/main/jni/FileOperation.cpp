@@ -5,6 +5,7 @@
 #include "FileOperation.h"
 #include "stdlib.h"
 #include "time.h"
+#include <sys/stat.h>
 #include <stdio.h>
 
 #include <fcntl.h>
@@ -74,7 +75,15 @@ JNIEXPORT jboolean JNICALL Java_com_silicongo_george_emmc_1utils_FileOperation_r
 
     for (i = 0; i < test_times; i++) {
         sprintf(filename, "%s/%s%d", filePath, "test", i);
-        handle = open(filename, O_WRONLY | O_CREAT | O_DIRECT);
+        if (support_direct == false) {
+            handle = open(filename, O_WRONLY | O_CREAT | O_TRUNC,
+                          S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+        }
+        else {
+            handle = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_DIRECT | O_SYNC,
+                          S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH |
+                          S_IWOTH); // O_DIRECT | O_SYNC
+        }
         if (handle == -1) {
             status = JNI_FALSE;
             break;

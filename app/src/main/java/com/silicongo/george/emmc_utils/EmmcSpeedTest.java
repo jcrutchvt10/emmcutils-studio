@@ -220,7 +220,7 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
         btTestStart.setText(enable ? "Start" : "Stop");
     }
 
-    private class ExecuteReadWriteFile extends AsyncTask<String, String, Void> {
+    private class ExecuteReadWriteFile extends AsyncTask<String, Integer, Void> {
         private static final String TAG = "ExecuteReadWriteFile";
         private TextView tvOutput;
         long time_start, time_end;
@@ -228,6 +228,8 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
         int test_times;
         int test_pattern;
         int test_size;
+        long output_interval;
+        long output_length;
         boolean status;
 
         public ExecuteReadWriteFile(TextView tv) {
@@ -239,9 +241,23 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
          * delivers it the parameters given to AsyncTask.execute()
          */
         protected Void doInBackground(String... urls) {
-            time_start = System.currentTimeMillis();
-            status = FileOperation.rw_file(test_dir, test_times, test_size, test_pattern);
-            time_end = System.currentTimeMillis();
+            if (test_times == -1) {
+                Integer val[] = {0x0};
+                output_interval = 0x0;
+                output_length = 0x0;
+                while (isCancelled() == false) {
+                    time_start = System.currentTimeMillis();
+                    status = FileOperation.rw_file(test_dir, 40 * 1024 * 1024 / test_size,
+                            test_size, test_pattern);
+                    time_end = System.currentTimeMillis();
+                    val[0] = new Integer((int) (time_end - time_start));
+                    publishProgress(val);
+                }
+            } else {
+                time_start = System.currentTimeMillis();
+                status = FileOperation.rw_file(test_dir, test_times, test_size, test_pattern);
+                time_end = System.currentTimeMillis();
+            }
             return null;
         }
 
@@ -264,8 +280,8 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
 
             String val = spTestTimes.getSelectedItem().toString();
             int count = 0;
-            for(String str:testTimesString){
-                if(val.compareTo(str) == 0){
+            for (String str : testTimesString) {
+                if (val.compareTo(str) == 0) {
                     test_times = testTimesValue[count];
                     break;
                 }
@@ -274,8 +290,8 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
 
             val = spTestSize.getSelectedItem().toString();
             count = 0;
-            for(String str:testSizeString){
-                if(val.compareTo(str) == 0){
+            for (String str : testSizeString) {
+                if (val.compareTo(str) == 0) {
                     test_size = testSizeValue[count];
                     break;
                 }
@@ -284,8 +300,8 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
 
             val = spTestPattern.getSelectedItem().toString();
             count = 0;
-            for(String str:testPatternString){
-                if(val.compareTo(str) == 0){
+            for (String str : testPatternString) {
+                if (val.compareTo(str) == 0) {
                     test_pattern = testPatternValue[count];
                     break;
                 }
@@ -294,15 +310,35 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
         }
 
         protected void onPostExecute(Void result) {
-            if(status == true){
+            if (status == true) {
                 tvOutput.setText("");
-            }else{
+            } else {
                 tvOutput.setText("Test Error\n");
             }
             refreashDisplayCtrl(true);
         }
 
-        protected void onProgressUpdate(String... progress) {
+        protected void onProgressUpdate(Integer... progress) {
+            double speed;
+            int unit = 0x0;
+            String[] unitStr = {"Bytes", "KB", "MB"};
+            String info = new String();
+            output_interval += progress[0];
+            output_length += 40 * 1024 * 1024;
+            if(output_interval > 1000){
+                speed = output_length*1000/output_interval;
+                while(speed > 1024){
+                    speed /= 1024;
+                    unit++;
+                    if(unit >= 2){
+                        break;
+                    }
+                }
+                String.format(info, "%f%s/S", speed, unitStr);
+                tvOutput.setText("");
+                output_interval = 0x0;
+                output_length = 0x0;
+            }
         }
     }
 }
