@@ -245,6 +245,7 @@ public class MmcUtils {
                     }
 
                     if (extcsd_offset > 512) {
+                        extcsd[0] = -2;
                         Log.e(TAG, "Extcsd offset exceed max number" + extcsd_offset + " > 512");
                         break;
                     }
@@ -268,6 +269,8 @@ public class MmcUtils {
                     extcsd_offset++;
                 }
             }
+        }else{
+            extcsd[0] = -1;
         }
 
         return extcsd;

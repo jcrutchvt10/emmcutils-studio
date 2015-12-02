@@ -242,21 +242,26 @@ public class EmmcInforamtion extends Fragment implements View.OnClickListener, F
             }
 
             if (extcsd != null) {
-                int version = extcsd[192];
-                if (version > emmcVersion.length) {
-                    version = emmcVersion.length;
-                }
-                twEmmcVersion.setText(emmcVersion[version]);
+                if((extcsd[0] == -1) || (extcsd[0] == -2)){
+                    twEmmcVersion.setText(emmcVersion[emmcVersion.length-1] + ", Err Code: " + extcsd[0]);
+                    twEmmcSpeed.setText(emmcSpeed[emmcSpeed.length-1]);
+                }else{
+                    int version = extcsd[192];
+                    if (version > emmcVersion.length) {
+                        version = emmcVersion.length;
+                    }
+                    twEmmcVersion.setText(emmcVersion[version]);
 
-                int speed = extcsd[185] & 0x0f;
-                if (speed > emmcSpeed.length) {
-                    speed = emmcSpeed.length;
+                    int speed = extcsd[185] & 0x0f;
+                    if (speed > emmcSpeed.length) {
+                        speed = emmcSpeed.length;
+                    }
+                    int busMode = extcsd[183] & 0x0f;
+                    if (busMode > emmcBusMode.length) {
+                        busMode = emmcBusMode.length;
+                    }
+                    twEmmcSpeed.setText(emmcSpeed[speed]);
                 }
-                int busMode = extcsd[183] & 0x0f;
-                if (busMode > emmcBusMode.length) {
-                    busMode = emmcBusMode.length;
-                }
-                twEmmcSpeed.setText(emmcSpeed[speed] + " / " + emmcBusMode[busMode]);
             }
 
             btGetFeature.setEnabled(true);
