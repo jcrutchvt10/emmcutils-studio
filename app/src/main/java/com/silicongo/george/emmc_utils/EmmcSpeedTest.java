@@ -289,16 +289,16 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
                 test_times = Integer.MAX_VALUE;
             }
 
+            if (test_type == 0x0) {
+                status = FileOperation.write_file(test_dir, test_size, 1, test_pattern);
+                if (status == false) {
+                    return null;
+                }
+            }
             int i;
             for (i = 0; i < test_times; i++) {
                 if (isCancelled() == true) {
                     break;
-                }
-                if (test_type == 0x0) {
-                    status = FileOperation.write_file(test_dir, test_size, 1, test_pattern);
-                    if (status == false) {
-                        break;
-                    }
                 }
                 time_start = System.currentTimeMillis();
                 if (test_type == 0x0) {

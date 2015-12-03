@@ -1,0 +1,72 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.silicongo.george.emmc_utils.ReadSelectFileTest">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="left|top"
+        android:orientation="vertical">
+
+        <ProgressBar
+            android:id="@+id/pbOperationState"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/tvSelectReadFileInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Please Select the file to read test:" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvSelectReadFile"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="" />
+
+            <Button
+                android:id="@+id/btSelectReadFile"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="..." />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btGenerateReadFile"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Generate Read File" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvOutputInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="" />
+
+        <Button
+            android:id="@+id/btStartReadFile"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="Start Read Test"></Button>
+
+    </LinearLayout>
+
+</FrameLayout>
