@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.util.Log;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import org.w3c.dom.Text;
@@ -29,13 +30,15 @@ public class MmcUtils {
     private static final String emmcUtilsExecuteBinaryName = "mmc";
     private ExecuteBackgroundCmd executeBackgroundCmd;
     private TextView tvOutput;
+    private ScrollView svOutput;
 
     static {
         System.loadLibrary("MmcUtils");
     }
 
-    public MmcUtils(TextView tv) {
+    public MmcUtils(TextView tv, ScrollView sv) {
         tvOutput = tv;
+        svOutput = sv;
     }
 
     public static native String getMMCBlockPath();
@@ -346,6 +349,13 @@ public class MmcUtils {
         protected void onProgressUpdate(String... progress) {
             if (tvOutput != null) {
                 tvOutput.append(progress[0] + "\n");
+                if(svOutput != null){
+                    svOutput.post(new Runnable() {
+                        public void run() {
+                            svOutput.fullScroll(ScrollView.FOCUS_DOWN);
+                        }
+                    });
+                }
             }
         }
     }

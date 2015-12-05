@@ -14,7 +14,8 @@
             android:id="@+id/pbOperationState"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:max="100" />
 
         <TextView
             android:id="@+id/tvSelectReadFileInfo"
@@ -32,6 +33,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:background="#d6d6d6"
                 android:text="" />
 
             <Button
@@ -53,12 +55,18 @@
                 android:text="Generate Read File" />
         </LinearLayout>
 
+        <ScrollView
+            android:id="@+id/svOutputInfo"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="#d6d6d6">
         <TextView
             android:id="@+id/tvOutputInfo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:text="" />
+        </ScrollView>
 
         <Button
             android:id="@+id/btStartReadFile"

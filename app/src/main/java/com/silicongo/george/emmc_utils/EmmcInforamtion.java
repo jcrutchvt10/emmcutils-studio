@@ -10,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 
@@ -35,6 +36,9 @@ public class EmmcInforamtion extends Fragment implements View.OnClickListener, F
 
 
     public String emmcDevPath;
+
+    /* scroll view */
+    private ScrollView svCmdLineOutput;
 
     /* textview to display emmc information */
     private TextView twEmmcDevPath;
@@ -114,6 +118,8 @@ public class EmmcInforamtion extends Fragment implements View.OnClickListener, F
         btDoBKOPS = (Button) v.findViewById(R.id.emmcDoBKOPS);
         btClearContent = (Button) v.findViewById(R.id.clearContent);
 
+        svCmdLineOutput = (ScrollView) v.findViewById(R.id.svCmdLineOutput);
+
         btGetFeature.setEnabled(false);
         btGetWriteProtectStatus.setEnabled(false);
         btDoSanitize.setEnabled(false);
@@ -133,7 +139,7 @@ public class EmmcInforamtion extends Fragment implements View.OnClickListener, F
             FireMissilesDialogFragment dialogFragment = new FireMissilesDialogFragment();
             dialogFragment.show(getFragmentManager(), "Dialog");
         } else {
-            if((initEmmcInfo == null) || (initEmmcInfo.getStatus() == AsyncTask.Status.FINISHED)) {
+            if ((initEmmcInfo == null) || (initEmmcInfo.getStatus() == AsyncTask.Status.FINISHED)) {
                 initEmmcInfo = new InitEmmcInfo();
                 initEmmcInfo.execute();
             }
@@ -213,7 +219,7 @@ public class EmmcInforamtion extends Fragment implements View.OnClickListener, F
         private static final String TAG = "InitEmmcInfo";
 
         public InitEmmcInfo() {
-            mmcUtils = new MmcUtils(twCmdLineOutput);
+            mmcUtils = new MmcUtils(twCmdLineOutput, svCmdLineOutput);
         }
 
         /**
@@ -242,10 +248,10 @@ public class EmmcInforamtion extends Fragment implements View.OnClickListener, F
             }
 
             if (extcsd != null) {
-                if((extcsd[0] == -1) || (extcsd[0] == -2)){
-                    twEmmcVersion.setText(emmcVersion[emmcVersion.length-1] + ", Err Code: " + extcsd[0]);
-                    twEmmcSpeed.setText(emmcSpeed[emmcSpeed.length-1]);
-                }else{
+                if ((extcsd[0] == -1) || (extcsd[0] == -2)) {
+                    twEmmcVersion.setText(emmcVersion[emmcVersion.length - 1] + ", Err Code: " + extcsd[0]);
+                    twEmmcSpeed.setText(emmcSpeed[emmcSpeed.length - 1]);
+                } else {
                     int version = extcsd[192];
                     if (version > emmcVersion.length) {
                         version = emmcVersion.length;
@@ -273,11 +279,12 @@ public class EmmcInforamtion extends Fragment implements View.OnClickListener, F
     }
 
     @Override
-    public void onDialogPositiveClick(DialogFragment dialog){
+    public void onDialogPositiveClick(DialogFragment dialog) {
         getActivity().finish();
     }
+
     @Override
-    public void onDialogNegativeClick(DialogFragment dialog){
+    public void onDialogNegativeClick(DialogFragment dialog) {
         getActivity().finish();
     }
 }

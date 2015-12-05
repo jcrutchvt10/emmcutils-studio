@@ -3,6 +3,7 @@ package com.silicongo.george.emmc_utils;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
@@ -10,7 +11,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 
 
 /**
@@ -44,6 +51,13 @@ public class ReadSelectFileTest extends Fragment implements View.OnClickListener
     private Button btSelectReadFile;
     private Button btGenerateReadFile;
     private Button btStartReadFile;
+
+    /* ScrollView */
+    private ScrollView svOutputInfo;
+
+    private String strReadFile;
+
+    private ReadFileInfo readFileTask;
 
     /**
      * Use this factory method to create a new instance of
@@ -88,8 +102,15 @@ public class ReadSelectFileTest extends Fragment implements View.OnClickListener
         btSelectReadFile = (Button) v.findViewById(R.id.btSelectReadFile);
         btGenerateReadFile = (Button) v.findViewById(R.id.btGenerateReadFile);
         btStartReadFile = (Button) v.findViewById(R.id.btStartReadFile);
+        svOutputInfo = (ScrollView) v.findViewById(R.id.svOutputInfo);
 
-        pbOperationState.setVisibility(View.INVISIBLE);
+        setDisplayCtrl(true);
+
+        btSelectReadFile.setOnClickListener(this);
+        btGenerateReadFile.setOnClickListener(this);
+        btStartReadFile.setOnClickListener(this);
+
+        strReadFile = null;
 
         return v;
     }
@@ -138,13 +159,18 @@ public class ReadSelectFileTest extends Fragment implements View.OnClickListener
             case R.id.btSelectReadFile:
                 Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                 intent.setType("*/*");
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-
                 startActivityForResult(Intent.createChooser(intent, "Select a File to Read"), 0x0);
                 break;
             case R.id.btGenerateReadFile:
                 break;
             case R.id.btStartReadFile:
+                if((readFileTask != null) && (readFileTask.getStatus() == AsyncTask.Status.RUNNING)){
+                    readFileTask.cancel(true);
+                    setDisplayCtrl(true);
+                }else{
+                    readFileTask = new ReadFileInfo();
+                    readFileTask.execute();
+                }
                 break;
             default:
                 break;
@@ -155,8 +181,117 @@ public class ReadSelectFileTest extends Fragment implements View.OnClickListener
     public void onActivityResult(int requestCode, int resultCode, Intent data)  {
         switch (requestCode) {
             case 0x0:
+                if(resultCode == Activity.RESULT_OK){
+                    String str = data.getData().getPath();
+                    strReadFile = null;
+                    if(str != null){
+                        File fileTmp = new File(str);
+                        if((fileTmp.exists() == true) && (fileTmp.isFile())){
+                            strReadFile = str;
+                        }
+                    }
+                    if(strReadFile != null) {
+                        tvSelectReadFile.setText(strReadFile);
+                    }else{
+                        tvSelectReadFile.setText("");
+                    }
+                }
                 break;
         }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private void setDisplayCtrl(boolean enable){
+        pbOperationState.setVisibility(enable ? View.INVISIBLE : View.VISIBLE);
+        tvSelectReadFile.setEnabled(enable);
+        tvOutputInfo.setEnabled(!enable);
+        btSelectReadFile.setEnabled(enable);
+        btGenerateReadFile.setEnabled(enable);
+        btStartReadFile.setText(enable ? "Start Read Test" : "Stop");
+    }
+
+    /* AsyncTask to update the screen information */
+    private class ReadFileInfo extends AsyncTask<String, Integer, Void> {
+        private static final String TAG = "ReadFileInfo";
+        private long fileSize;
+        private long fileCurrentReadPos;
+        private byte[] fileBuffer;
+        private FileInputStream fin;
+
+        private long startTimestamp;
+        private long currentTimestamp;
+
+        private int lastUpdateInterval;
+        private long lastUpdateFilePos;
+
+        public ReadFileInfo() {
+            lastUpdateInterval = 0x0;
+            lastUpdateFilePos = 0x0;
+        }
+
+        /**
+         * The system calls this to perform work in a worker thread and
+         * delivers it the parameters given to AsyncTask.execute()
+         */
+        protected Void doInBackground(String... urls) {
+            Integer[] progressResult = {0x0, 0x0, 0x0};
+            if(strReadFile != null){
+                File fileRead = new File(strReadFile);
+                /* Get the file size */
+                fileSize = fileRead.length();
+                fileCurrentReadPos = 0x0;
+                startTimestamp = System.currentTimeMillis();
+
+                fileBuffer = new byte[16384];
+                try {
+                    fin = new FileInputStream(strReadFile);
+                    while (fileCurrentReadPos < fileSize){
+                        fin.read(fileBuffer, 0x0, fileBuffer.length);
+                        fileCurrentReadPos += fileBuffer.length;
+                        currentTimestamp = System.currentTimeMillis();
+                        progressResult[0] = new Integer((int)(currentTimestamp - startTimestamp));
+                        publishProgress(progressResult);
+                        if(isCancelled()){
+                            break;
+                        }
+                    }
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }catch (java.io.IOException e){
+                }
+            }
+            return null;
+        }
+
+        protected void onPreExecute() {
+            setDisplayCtrl(false);
+            tvOutputInfo.setText("");
+        }
+
+        protected void onPostExecute(Void result) {
+            setDisplayCtrl(true);
+        }
+
+        protected void onProgressUpdate(Integer... progress) {
+            int val = progress[0];
+            pbOperationState.setProgress((int)(fileCurrentReadPos*100/fileSize));
+
+            if((val - lastUpdateInterval) > 1000){
+                int interval = (int)(val - lastUpdateInterval);
+                int length = (int)(fileCurrentReadPos - lastUpdateFilePos);
+                double speed = length/interval*1000/1024/1024;
+                double average_speed = fileCurrentReadPos/val*1000/1024/1024;
+                String strSpeed = String.format("Read: %.3f MB/S, Average: %.3f MB/S\n",
+                        speed, average_speed);
+                tvOutputInfo.append(strSpeed);
+                svOutputInfo.post(new Runnable() {
+                    public void run() {
+                        svOutputInfo.fullScroll(ScrollView.FOCUS_DOWN);
+                    }
+                });
+                lastUpdateInterval = val;
+                lastUpdateFilePos = fileCurrentReadPos;
+            }
+        }
     }
 }

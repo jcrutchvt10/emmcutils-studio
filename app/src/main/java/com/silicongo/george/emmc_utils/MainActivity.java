@@ -29,7 +29,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
 public class MainActivity extends AppCompatActivity implements EmmcInforamtion.OnFragmentInteractionListener,
-        EmmcSpeedTest.OnFragmentInteractionListener {
+        EmmcSpeedTest.OnFragmentInteractionListener, ReadSelectFileTest.OnFragmentInteractionListener {
 
     private static final String TAG = "MainActivity";
 
@@ -43,7 +43,7 @@ public class MainActivity extends AppCompatActivity implements EmmcInforamtion.O
 
         // ViewPager and its adapters use support library
         // fragments, so use getSupportFragmentManager.
-        mDemoCollectionPagerAdapter =  new EmmcUtilsPagerAdapter(getSupportFragmentManager());
+        mDemoCollectionPagerAdapter = new EmmcUtilsPagerAdapter(getSupportFragmentManager());
         mViewPager = (ViewPager) findViewById(R.id.pager);
         mViewPager.setAdapter(mDemoCollectionPagerAdapter);
     }
@@ -78,6 +78,7 @@ public class MainActivity extends AppCompatActivity implements EmmcInforamtion.O
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     // Since this is an object collection, use a FragmentStatePagerAdapter,
@@ -89,7 +90,8 @@ public class MainActivity extends AppCompatActivity implements EmmcInforamtion.O
         public EmmcUtilsPagerAdapter(FragmentManager fm) {
             super(fm);
 
-            emmcUtilsFragment = new Fragment[]{new EmmcInforamtion(), new EmmcSpeedTest()};
+            emmcUtilsFragment = new Fragment[]{new ReadSelectFileTest(),
+                    new EmmcInforamtion(), new EmmcSpeedTest()};
         }
 
         @Override
@@ -110,7 +112,7 @@ public class MainActivity extends AppCompatActivity implements EmmcInforamtion.O
     }
 
     @Override
-    public void onFragmentInteraction(Uri uri){
+    public void onFragmentInteraction(Uri uri) {
 
     }
 }

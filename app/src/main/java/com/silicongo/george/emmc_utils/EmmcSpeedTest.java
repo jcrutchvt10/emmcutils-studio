@@ -377,7 +377,7 @@ public class EmmcSpeedTest extends Fragment implements View.OnClickListener {
         }
 
         protected void onPostExecute(Void result) {
-            if (status == true) {
+            if ((status == true)&&(total_interval != 0)) {
                 speed = total_length * 1000 / total_interval;
                 unit = 0x0;
                 while (speed > 1024) {
